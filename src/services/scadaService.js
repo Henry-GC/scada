@@ -3,32 +3,130 @@ import { plantSimulator } from './plantSimulator';
 /**
  * Unified SCADA Service Layer
  * 
- * In the future, you can swap `USE_MOCK` to `false` and implement the 
- * WebSocket bindings inside the `else` blocks to connect to Node-RED.
+ * Conectado a Node-RED via WebSocket para lectura de datos.
  */
-const USE_MOCK = true; // Toggle this when WebSockets are ready
+const USE_MOCK = false; // Cambiar a true si se quiere usar el simulador local (plantSimulator)
+const WS_URL = `ws://${window.location.hostname}:1880/ws/scada`;
 
 class ScadaService {
   constructor() {
     this.listeners = new Set();
     
-    // If using mock, subscribe to simulator changes and pipe them here
+    // Estado inicial para cuando se usa Node-RED
+    this.state = {
+      tanks: [
+        { id: 100, name: 'Cárcamo de Bombeo', level: 0, flowIn: 0, flowOut: 0 },
+        { id: 200, name: 'Reservorio', level: 0, flowIn: 0, flowOut: 0 }
+      ],
+      pumps: [
+        { id: 101, name: 'Bomba 1', status: 'STOP', mode: 'AUTO', fault: false, maintenance: false },
+        { id: 102, name: 'Bomba 2', status: 'STOP', mode: 'AUTO', fault: false, maintenance: false }
+      ],
+      valves: [
+        { id: 101, name: 'Válvula Entrada', status: 'CLOSED' },
+        { id: 200, name: 'Válvula Salida', status: 'CLOSED' }
+      ],
+      systemHealth: 'GOOD',
+      alarms: [],
+      history: { tank100: [], tank200: [] }
+    };
+    
     if (USE_MOCK) {
       plantSimulator.subscribe((newState) => {
         this.notify(newState);
       });
     } else {
-      // TODO: Initialize WebSocket connection (e.g. socket.io, native ws)
-      // socket.on('message', (data) => this.notify(JSON.parse(data)))
+      this.initWebSocket();
     }
+  }
+
+  initWebSocket() {
+    this.ws = new WebSocket(WS_URL);
+
+    this.ws.onopen = () => {
+      console.log('Conectado a Node-RED via WebSocket en', WS_URL);
+    };
+
+    this.ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        this.updateStateFromNodeRed(data);
+      } catch (error) {
+        console.error('Error parseando datos del websocket:', error);
+      }
+    };
+
+    this.ws.onclose = () => {
+      console.log('WebSocket desconectado, reintentando...');
+      setTimeout(() => this.initWebSocket(), 5000); // Reconnect
+    };
+
+    this.ws.onerror = (error) => {
+      console.error('Error en WebSocket:', error);
+      this.ws.close();
+    };
+  }
+
+  updateStateFromNodeRed(data) {
+    // Mapeo de datos desde el payload de Node-RED al estado del UI
+
+    // Niveles de los tanques
+    if (data.nivel_carcamo !== undefined) {
+      this.state.tanks[0].level = data.nivel_carcamo;
+    }
+    if (data.nivel_reservorio !== undefined) {
+      this.state.tanks[1].level = data.nivel_reservorio;
+    }
+
+    // Estado de las bombas
+    if (data.bomba_1 !== undefined) {
+      this.state.pumps[0].status = data.bomba_1 ? 'RUN' : 'STOP';
+    }
+    if (data.bomba_2 !== undefined) {
+      this.state.pumps[1].status = data.bomba_2 ? 'RUN' : 'STOP';
+    }
+
+    // Alarma de obstrucción
+    if (data.alarma_obstruccion !== undefined) {
+      if (data.alarma_obstruccion) {
+        this.state.systemHealth = 'CRITICAL';
+        const existingAlarm = this.state.alarms.find(a => a.id === 'obstruccion');
+        if (!existingAlarm || existingAlarm.state === 'ACKNOWLEDGED') {
+          this.state.alarms.unshift({
+            id: 'obstruccion',
+            timestamp: new Date(data.timestamp || Date.now()).toLocaleTimeString(),
+            message: 'Alarma de Obstrucción Detectada',
+            severity: 'CRITICAL',
+            state: 'ACTIVE'
+          });
+        }
+      } else {
+        this.state.systemHealth = 'GOOD';
+        // Auto-resolver alarma de obstruccion si ya no está presente
+        const alarm = this.state.alarms.find(a => a.id === 'obstruccion' && a.state === 'ACTIVE');
+        if (alarm) {
+          alarm.state = 'RESOLVED';
+        }
+      }
+    }
+
+    // Actualizar historial
+    const timeStr = new Date(data.timestamp || Date.now()).toLocaleTimeString();
+    
+    this.state.history.tank100.push({ time: timeStr, level: this.state.tanks[0].level });
+    if (this.state.history.tank100.length > 60) this.state.history.tank100.shift();
+
+    this.state.history.tank200.push({ time: timeStr, level: this.state.tanks[1].level });
+    if (this.state.history.tank200.length > 60) this.state.history.tank200.shift();
+
+    this.notify(this.state);
   }
 
   // --- Core Subscription ---
   
   getState() {
     if (USE_MOCK) return plantSimulator.getState();
-    // TODO: Return last known WS state
-    return {}; 
+    return this.state; 
   }
 
   subscribe(callback) {
@@ -47,16 +145,17 @@ class ScadaService {
 
   togglePump(id) {
     if (USE_MOCK) plantSimulator.togglePump(id);
-    // else socket.send(JSON.stringify({ cmd: 'togglePump', id }))
+    else console.log('Escritura websocket omitida por ahora (togglePump)', id);
   }
 
   toggleValve(id) {
     if (USE_MOCK) plantSimulator.toggleValve(id);
-    // else socket.send(...)
+    else console.log('Escritura websocket omitida por ahora (toggleValve)', id);
   }
 
   changePumpMode(id, mode) {
     if (USE_MOCK) plantSimulator.changePumpMode(id, mode);
+    else console.log('Escritura websocket omitida por ahora (changePumpMode)', id, mode);
   }
 
   simulateFault(id) {
@@ -69,6 +168,13 @@ class ScadaService {
 
   acknowledgeAlarm(id) {
     if (USE_MOCK) plantSimulator.acknowledgeAlarm(id);
+    else {
+      const a = this.state.alarms.find(a => a.id === id);
+      if (a) { 
+        a.state = 'ACKNOWLEDGED'; 
+        this.notify(this.state); 
+      }
+    }
   }
 }
 
