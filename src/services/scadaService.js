@@ -11,7 +11,7 @@ const WS_URL = `ws://${window.location.hostname}:1880/ws/scada`;
 class ScadaService {
   constructor() {
     this.listeners = new Set();
-    
+
     // Estado inicial para cuando se usa Node-RED
     this.state = {
       tanks: [
@@ -30,7 +30,7 @@ class ScadaService {
       alarms: [],
       history: { tank100: [], tank200: [] }
     };
-    
+
     if (USE_MOCK) {
       plantSimulator.subscribe((newState) => {
         this.notify(newState);
@@ -112,7 +112,7 @@ class ScadaService {
 
     // Actualizar historial
     const timeStr = new Date(data.timestamp || Date.now()).toLocaleTimeString();
-    
+
     this.state.history.tank100.push({ time: timeStr, level: this.state.tanks[0].level });
     if (this.state.history.tank100.length > 60) this.state.history.tank100.shift();
 
@@ -123,10 +123,10 @@ class ScadaService {
   }
 
   // --- Core Subscription ---
-  
+
   getState() {
     if (USE_MOCK) return plantSimulator.getState();
-    return this.state; 
+    return this.state;
   }
 
   subscribe(callback) {
@@ -143,14 +143,48 @@ class ScadaService {
 
   // --- Commands (Write to PLC) ---
 
-  togglePump(id) {
-    if (USE_MOCK) plantSimulator.togglePump(id);
-    else console.log('Escritura websocket omitida por ahora (togglePump)', id);
+  send(command, value = true) {
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify({ command, value }));
+    } else {
+      console.error('No hay conexión con el servidor SCADA');
+    }
   }
 
-  toggleValve(id) {
-    if (USE_MOCK) plantSimulator.toggleValve(id);
-    else console.log('Escritura websocket omitida por ahora (toggleValve)', id);
+  togglePump(idOrAction) {
+    if (USE_MOCK) {
+      if (typeof idOrAction === 'number') {
+        plantSimulator.togglePump(idOrAction);
+      }
+      return;
+    }
+
+    let action = idOrAction;
+    if (typeof idOrAction === 'number') {
+      const pump = this.state.pumps.find(p => p.id === idOrAction);
+      action = pump && pump.status === 'RUN' ? 'STOP' : 'START';
+    }
+
+    const cmd = action === 'START' ? 'MARCHA_BOMBAS' : 'PARO_BOMBAS';
+    this.send(cmd);
+  }
+
+  toggleValve(id, targetStatus) {
+    if (USE_MOCK) {
+      plantSimulator.toggleValve(id);
+      return;
+    }
+
+    if (!targetStatus) {
+      const valve = this.state.valves.find(v => v.id === id);
+      targetStatus = valve && valve.status === 'OPEN' ? 'CLOSED' : 'OPEN';
+    }
+
+    let cmd = '';
+    if (id === 101) cmd = targetStatus === 'OPEN' ? 'CARCAMO_ABRIR' : 'CARCAMO_CERRAR';
+    if (id === 200) cmd = targetStatus === 'OPEN' ? 'RESERVORIO_ABRIR' : 'RESERVORIO_CERRAR';
+    
+    if (cmd) this.send(cmd);
   }
 
   changePumpMode(id, mode) {
@@ -170,9 +204,9 @@ class ScadaService {
     if (USE_MOCK) plantSimulator.acknowledgeAlarm(id);
     else {
       const a = this.state.alarms.find(a => a.id === id);
-      if (a) { 
-        a.state = 'ACKNOWLEDGED'; 
-        this.notify(this.state); 
+      if (a) {
+        a.state = 'ACKNOWLEDGED';
+        this.notify(this.state);
       }
     }
   }
