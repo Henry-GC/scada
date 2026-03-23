@@ -3,98 +3,101 @@ import { usePlantData } from '../hooks/usePlantData';
 import { Pump } from '../components/scada/Pump';
 import { Valve } from '../components/scada/Valve';
 import { Separator } from '@/components/ui/separator';
-import { AlertTriangle, Wrench } from 'lucide-react';
 
 export function Control() {
-  const { pumps, valves, togglePump, toggleValve, changePumpMode, simulateFault, toggleMaintenance } = usePlantData();
+  const { pumps, valves, togglePump, toggleValve, toggleMaintenance } = usePlantData();
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto text-slate-200">
-      <div className="border-b border-[#1e293b] pb-4 mb-8">
-        <h2 className="text-xl font-bold tracking-widest text-white uppercase">Control & Pruebas de Failover</h2>
-        <p className="text-sm text-[#8b9bb4] font-mono mt-1">Interacción manual y simulación de fallos</p>
+    <div className="space-y-4 max-w-6xl mx-auto text-slate-200 h-full flex flex-col">
+      <div className="border-b border-[#1e293b] pb-2 mb-4 shrink-0">
+        <h2 className="text-xl font-bold tracking-widest text-white uppercase">Control Manual</h2>
+        <p className="text-sm text-[#8b9bb4] font-mono mt-1">Interacción manual (Requiere MODO MANUAL en campo o forzado)</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1">
         {/* Pumps Section */}
-        <div className="bg-[#0a0f18] border border-[#1e293b] rounded-xl shadow-2xl overflow-hidden">
-          <div className="bg-[#0b101e] border-b border-[#1e293b] px-6 py-4 flex justify-between items-center">
+        <div className="bg-[#0a0f18] border border-[#1e293b] rounded-xl shadow-2xl overflow-hidden flex flex-col">
+          <div className="bg-[#0b101e] border-b border-[#1e293b] px-4 py-3 flex justify-between items-center shrink-0">
             <h3 className="text-sm font-mono tracking-widest text-[#8b9bb4] uppercase">Control de Bombas</h3>
             <span className="text-xs font-mono text-slate-600 uppercase tracking-widest">{pumps.length} UNITS</span>
           </div>
-          
-          <div className="p-8 flex justify-center gap-12 flex-wrap">
-            {pumps.map(pump => (
-              <div key={pump.id} className="flex flex-col gap-4 bg-[#0d1320] p-4 rounded-xl border border-[#1e293b]">
-                <Pump 
-                  {...pump} 
-                  onToggle={togglePump} 
+
+          <div className="p-4 flex flex-col items-center gap-4 flex-1 justify-center">
+            <div className="flex justify-center gap-6 flex-wrap mb-2">
+              {pumps.map(pump => (
+                <div key={pump.id} className="flex flex-col gap-4 bg-[#0d1320] p-4 rounded-xl border border-[#1e293b] relative min-w-[170px] pt-10">
+                  {pump.id === 101 && (
+                    <div className="absolute top-3 left-3 flex items-center gap-2">
+                      <span className="text-[9px] text-slate-500 font-mono uppercase tracking-widest">Mantenimiento</span>
+                      <button
+                        onClick={() => toggleMaintenance(101)}
+                        className={`w-8 h-4 rounded-full transition-colors relative flex items-center px-0.5 ${pump.maintenance ? 'bg-orange-500' : 'bg-slate-700'}`}
+                        title="Toggle Mantenimiento"
+                      >
+                        <div className={`w-3 h-3 rounded-full bg-white transition-transform ${pump.maintenance ? 'translate-x-4' : 'translate-x-0'}`} />
+                      </button>
+                    </div>
+                  )}
+                  <Pump
+                    {...pump}
+                  />
+                </div>
+              ))}
+            </div>
+
+            {/* Main Pump Controls */}
+            <div className="flex justify-center gap-4 w-full pt-4">
+              <button
+                onClick={() => togglePump('START')}
+                className={`flex justify-center items-center py-2 px-6 rounded border transition-all bg-[#1e293b] border-slate-700 hover:bg-[#10b981]/20 text-slate-400 hover:text-[#10b981] w-40`}
+                title="Marcha"
+              >
+                <span className="text-xs font-bold tracking-widest uppercase">Marcha</span>
+              </button>
+              <button
+                onClick={() => togglePump('STOP')}
+                className={`flex justify-center items-center py-2 px-6 rounded border transition-all bg-[#1e293b] border-slate-700 hover:bg-[#ef4444]/20 text-slate-400 hover:text-[#ef4444] w-40`}
+                title="Paro"
+              >
+                <span className="text-xs font-bold tracking-widest uppercase">Paro</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Valves Section */}
+        <div className="bg-[#0a0f18] border border-[#1e293b] rounded-xl shadow-2xl overflow-hidden flex flex-col">
+          <div className="bg-[#0b101e] border-b border-[#1e293b] px-4 py-3 flex justify-between items-center shrink-0">
+            <h3 className="text-sm font-mono tracking-widest text-[#8b9bb4] uppercase">Control de Válvulas</h3>
+            <span className="text-xs font-mono text-slate-600 uppercase tracking-widest">{valves.length} UNITS</span>
+          </div>
+          <div className="p-4 flex justify-center gap-6 flex-wrap flex-1 items-center">
+            {valves.map(valve => (
+              <div key={valve.id} className="flex flex-col gap-4 bg-[#0d1320] p-4 rounded-xl border border-[#1e293b]">
+                <Valve
+                  {...valve}
                 />
-                
-                {/* Individual Control Panel */}
-                <div className="flex flex-col gap-2 mt-2">
-                  <button 
-                    onClick={() => changePumpMode(pump.id, pump.mode === 'AUTO' ? 'MANUAL' : 'AUTO')}
-                    className={`px-2 py-1.5 font-mono text-[10px] uppercase tracking-wider rounded border transition-colors ${
-                      pump.mode === 'AUTO' ? 'bg-[#1e293b] border-[#334155] text-slate-400 hover:bg-[#334155]' : 'bg-[#3b82f6]/20 border-[#3b82f6]/50 text-[#3b82f6] hover:bg-[#3b82f6]/30'
-                    }`}
+
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  <button
+                    onClick={() => toggleValve(valve.id, 'OPEN')}
+                    className={`flex justify-center items-center py-1.5 px-3 rounded border transition-all bg-[#1e293b] border-slate-700 hover:bg-[#3b82f6]/20 text-slate-400 hover:text-[#3b82f6]`}
                   >
-                     Modo {pump.mode} &rarr; {pump.mode === 'AUTO' ? 'MÁQUINA' : 'AUTO'}
+                    <span className="text-[10px] font-bold tracking-widest uppercase">Abrir</span>
                   </button>
-                  
-                  <div className="grid grid-cols-2 gap-2 mt-2">
-                    <button 
-                      onClick={() => simulateFault(pump.id)}
-                      className={`flex justify-center items-center py-1.5 rounded border transition-all ${
-                        pump.fault ? 'bg-[#ef4444] text-white border-red-400 shadow-[0_0_10px_rgba(239,68,68,0.5)]' : 'bg-[#1e293b] border-slate-700 hover:bg-red-500/20 text-slate-400 hover:text-red-400'
-                      }`}
-                      title="Simular Falla"
-                    >
-                      <AlertTriangle className="w-4 h-4" />
-                    </button>
-                    <button 
-                      onClick={() => toggleMaintenance(pump.id)}
-                      className={`flex justify-center items-center py-1.5 rounded border transition-all ${
-                        pump.maintenance ? 'bg-[#f97316] text-[#ffedd5] border-orange-400 shadow-[0_0_10px_rgba(249,115,22,0.5)]' : 'bg-[#1e293b] border-slate-700 hover:bg-orange-500/20 text-slate-400 hover:text-orange-400'
-                      }`}
-                      title="Mantenimiento"
-                    >
-                      <Wrench className="w-4 h-4" />
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => toggleValve(valve.id, 'CLOSED')}
+                    className={`flex justify-center items-center py-1.5 px-3 rounded border transition-all bg-[#1e293b] border-slate-700 hover:bg-[#ef4444]/20 text-slate-400 hover:text-[#ef4444]`}
+                  >
+                    <span className="text-[10px] font-bold tracking-widest uppercase">Cerrar</span>
+                  </button>
                 </div>
               </div>
             ))}
           </div>
         </div>
-
-        {/* Valves Section */}
-        <div className="bg-[#0a0f18] border border-[#1e293b] rounded-xl shadow-2xl overflow-hidden">
-          <div className="bg-[#0b101e] border-b border-[#1e293b] px-6 py-4 flex justify-between items-center">
-            <h3 className="text-sm font-mono tracking-widest text-[#8b9bb4] uppercase">Control de Válvulas</h3>
-            <span className="text-xs font-mono text-slate-600 uppercase tracking-widest">{valves.length} UNITS</span>
-          </div>
-          <div className="p-8 flex justify-center gap-8 flex-wrap">
-            {valves.map(valve => (
-              <Valve 
-                key={valve.id} 
-                {...valve} 
-                onToggle={toggleValve} 
-              />
-            ))}
-          </div>
-        </div>
       </div>
 
-      <Separator className="bg-[#1e293b] my-8" />
-
-      <div className="bg-[#0f172a] border border-[#1e293b] rounded-lg p-6 font-mono text-xs text-slate-400 leading-relaxed shadow-lg flex flex-col gap-2">
-        <strong className="text-white text-sm block mb-1 uppercase tracking-widest border-b border-[#1e293b] pb-2">Guía de Pruebas de Failover:</strong>
-        <p>1. Asegurate de que P-101 y P-102 estén en <strong>AUTO</strong>.</p>
-        <p>2. El sistema encenderá P-101 (Bomba Principal) automáticamente si el Tanque 1 tiene agua (y el tanque 2 no esta lleno).</p>
-        <p>3. Presiona el botón de <strong>Falla (Triángulo)</strong> o <strong>Mantenimiento (Llave)</strong> en P-101.</p>
-        <p>4. Observa cómo <strong>P-102 (Bomba Respaldo) se enciende automáticamente</strong> para mantener el flujo de agua.</p>
-      </div>
     </div>
   );
 }

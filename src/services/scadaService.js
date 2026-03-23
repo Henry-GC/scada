@@ -19,8 +19,8 @@ class ScadaService {
         { id: 200, name: 'Reservorio', level: 0, flowIn: 0, flowOut: 0 }
       ],
       pumps: [
-        { id: 101, name: 'Bomba 1', status: 'STOP', mode: 'AUTO', fault: false, maintenance: false },
-        { id: 102, name: 'Bomba 2', status: 'STOP', mode: 'AUTO', fault: false, maintenance: false }
+        { id: 101, name: 'Bomba Principal', status: 'STOP', mode: 'AUTO', fault: false, maintenance: false },
+        { id: 102, name: 'Bomba Secundaria', status: 'STOP', mode: 'AUTO', fault: false, maintenance: false }
       ],
       valves: [
         { id: 101, name: 'Válvula Entrada', status: 'CLOSED' },
@@ -28,7 +28,8 @@ class ScadaService {
       ],
       systemHealth: 'GOOD',
       alarms: [],
-      history: { tank100: [], tank200: [] }
+      history: { tank100: [], tank200: [] },
+      obstructionSensor: 0
     };
 
     if (USE_MOCK) {
@@ -84,6 +85,19 @@ class ScadaService {
     }
     if (data.bomba_2 !== undefined) {
       this.state.pumps[1].status = data.bomba_2 ? 'RUN' : 'STOP';
+    }
+
+    // Estado de las válvulas
+    if (data.val_carcamo_estado !== undefined) {
+      this.state.valves[0].status = data.val_carcamo_estado ? 'OPEN' : 'CLOSED';
+    }
+    if (data.val_reservorio_estado !== undefined) {
+      this.state.valves[1].status = data.val_reservorio_estado ? 'OPEN' : 'CLOSED';
+    }
+
+    // Sensor de obstrucción
+    if (data.sensor_obstruccion !== undefined) {
+      this.state.obstructionSensor = data.sensor_obstruccion;
     }
 
     // Alarma de obstrucción
@@ -151,30 +165,23 @@ class ScadaService {
     }
   }
 
-  togglePump(idOrAction) {
+  togglePump(action) {
     if (USE_MOCK) {
-      if (typeof idOrAction === 'number') {
-        plantSimulator.togglePump(idOrAction);
-      }
+      if (typeof action === 'number') plantSimulator.togglePump(action);
       return;
-    }
-
-    let action = idOrAction;
-    if (typeof idOrAction === 'number') {
-      const pump = this.state.pumps.find(p => p.id === idOrAction);
-      action = pump && pump.status === 'RUN' ? 'STOP' : 'START';
     }
 
     const cmd = action === 'START' ? 'MARCHA_BOMBAS' : 'PARO_BOMBAS';
     this.send(cmd);
   }
 
-  toggleValve(id, targetStatus) {
+  toggleValve(id, action) {
     if (USE_MOCK) {
       plantSimulator.toggleValve(id);
       return;
     }
 
+    let targetStatus = action;
     if (!targetStatus) {
       const valve = this.state.valves.find(v => v.id === id);
       targetStatus = valve && valve.status === 'OPEN' ? 'CLOSED' : 'OPEN';
@@ -183,7 +190,7 @@ class ScadaService {
     let cmd = '';
     if (id === 101) cmd = targetStatus === 'OPEN' ? 'CARCAMO_ABRIR' : 'CARCAMO_CERRAR';
     if (id === 200) cmd = targetStatus === 'OPEN' ? 'RESERVORIO_ABRIR' : 'RESERVORIO_CERRAR';
-    
+
     if (cmd) this.send(cmd);
   }
 
@@ -197,7 +204,16 @@ class ScadaService {
   }
 
   toggleMaintenance(id) {
-    if (USE_MOCK) plantSimulator.toggleMaintenance(id);
+    if (USE_MOCK) {
+      plantSimulator.toggleMaintenance(id);
+    } else {
+      const pump = this.state.pumps.find(p => p.id === id);
+      if (pump) {
+        pump.maintenance = !pump.maintenance;
+        this.notify(this.state);
+        this.send(id === 101 ? 'MANTENIMIENTO_BOMBA_1' : 'MANTENIMIENTO_BOMBA_2', pump.maintenance);
+      }
+    }
   }
 
   acknowledgeAlarm(id) {

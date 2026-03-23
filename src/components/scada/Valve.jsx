@@ -1,6 +1,6 @@
 import React from 'react';
 
-export function Valve({ id, status, name, onToggle }) {
+export function Valve({ id, status, name }) {
   const isOpen = status === 'OPEN';
   const color = isOpen ? 'text-[#3b82f6]' : 'text-[#64748b]';
   const borderColor = isOpen ? 'border-[#3b82f6]/50' : 'border-[#1e293b]';
@@ -12,10 +12,7 @@ export function Valve({ id, status, name, onToggle }) {
       <span className="text-[#8b9bb4] font-mono text-sm font-bold tracking-widest">V-{id}</span>
       
       <div 
-        onClick={() => onToggle && onToggle(id)}
-        className={`w-28 h-28 rounded border border-[#1e293b] flex flex-col items-center justify-center gap-3 shadow-xl ${
-          onToggle ? 'cursor-pointer hover:border-[#10b981]/50 transition-colors' : ''
-        } bg-[#0b101e]`}
+        className={`w-28 h-28 rounded border border-[#1e293b] flex flex-col items-center justify-center gap-3 shadow-xl bg-[#0b101e]`}
       >
         {/* Custom Valve Icon SVG */}
         <div className={`w-12 h-12 flex items-center justify-center rounded-lg border-2 transition-all duration-300 ${borderColor} ${bgColor}`}>

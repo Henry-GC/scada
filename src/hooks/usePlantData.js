@@ -13,10 +13,9 @@ export function usePlantData() {
 
   return {
     ...data,
-    togglePump: (id) => scadaService.togglePump(id),
-    toggleValve: (id) => scadaService.toggleValve(id),
+    togglePump: (action) => scadaService.togglePump(action),
+    toggleValve: (id, action) => scadaService.toggleValve(id, action),
     changePumpMode: (id, mode) => scadaService.changePumpMode(id, mode),
-    simulateFault: (id) => scadaService.simulateFault(id),
     toggleMaintenance: (id) => scadaService.toggleMaintenance(id),
     acknowledgeAlarm: (id) => scadaService.acknowledgeAlarm(id),
   };

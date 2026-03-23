@@ -1,7 +1,7 @@
 import React from 'react';
 import { Settings, AlertTriangle, Wrench } from 'lucide-react';
 
-export function Pump({ id, status, name, fault, maintenance, onToggle }) {
+export function Pump({ id, status, name, fault, maintenance }) {
   const isRunning = status === 'RUN';
   
   let color = isRunning ? 'text-[#10b981]' : 'text-[#64748b]';
@@ -38,10 +38,7 @@ export function Pump({ id, status, name, fault, maintenance, onToggle }) {
       </div>
       
       <div 
-        onClick={() => onToggle && onToggle(id)}
-        className={`w-32 h-36 rounded border ${containerBorderColor} ${borderStyle} flex flex-col items-center justify-center gap-4 shadow-xl ${
-          onToggle ? 'cursor-pointer hover:border-[#3b82f6]/50 transition-colors' : ''
-        } bg-[#0b101e]`}
+        className={`w-32 h-36 rounded border ${containerBorderColor} ${borderStyle} flex flex-col items-center justify-center gap-4 shadow-xl bg-[#0b101e]`}
       >
         <div className={`w-16 h-16 rounded-full border-2 flex items-center justify-center transition-colors duration-300 ${borderColor} ${bgColor}`}>
           {icon}

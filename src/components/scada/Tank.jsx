@@ -1,6 +1,6 @@
 import React from 'react';
 
-export function Tank({ id, level, name }) {
+export function Tank({ id, level, name, maxVolume }) {
   // Determine color based on level
   let liquidColor = 'bg-[#3b82f6]'; // Default blue
   let glow = 'shadow-[0_0_15px_rgba(59,130,246,0.3)]';
@@ -13,9 +13,18 @@ export function Tank({ id, level, name }) {
     glow = 'shadow-[0_0_15px_rgba(234,179,8,0.3)]';
   }
 
+  const currentVolume = maxVolume ? ((level / 100) * maxVolume).toFixed(1) : null;
+
   return (
     <div className="flex flex-col items-center gap-3">
-      <span className="text-[#8b9bb4] font-mono text-sm font-bold tracking-widest">T-{id}</span>
+      <div className="flex flex-col items-center">
+        <span className="text-[#8b9bb4] font-mono text-sm font-bold tracking-widest">T-{id}</span>
+        {currentVolume !== null && (
+          <span className="text-blue-300 font-mono text-xs font-bold tracking-widest mt-1 bg-[#1e293b]/50 px-2 py-0.5 rounded shadow-sm">
+            {currentVolume} m³
+          </span>
+        )}
+      </div>
       
       {/* Tank Container */}
       <div className="relative w-32 h-48 rounded dark:bg-[#0f1523] bg-[#0f1523] border-2 border-[#1e293b] shadow-xl overflow-hidden flex flex-col justify-end p-1">
@@ -33,9 +42,16 @@ export function Tank({ id, level, name }) {
         </div>
       </div>
       
-      <span className="text-slate-500 text-xs font-mono max-w-[120px] text-center uppercase">
-        {name}
-      </span>
+      <div className="flex flex-col items-center gap-1">
+        <span className="text-slate-500 text-[10px] font-mono max-w-[120px] text-center uppercase leading-tight">
+          {name}
+        </span>
+        {maxVolume && (
+          <span className="text-slate-600 text-[9px] font-mono text-center uppercase">
+            Capacidad: {maxVolume} m³
+          </span>
+        )}
+      </div>
     </div>
   );
 }
