@@ -39,40 +39,40 @@ export function Trends() {
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 20 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-              <XAxis 
-                dataKey="time" 
-                stroke="#64748b" 
-                fontSize={10} 
+              <XAxis
+                dataKey="time"
+                stroke="#64748b"
+                fontSize={10}
                 tickMargin={10}
                 tickFormatter={(val) => val.substring(0, val.lastIndexOf(':'))}
                 fontFamily="monospace"
               />
-              <YAxis 
-                domain={[0, 100]} 
-                stroke="#64748b" 
-                fontSize={12} 
+              <YAxis
+                domain={[0, 100]}
+                stroke="#64748b"
+                fontSize={12}
                 tickFormatter={(val) => `${val}%`}
                 fontFamily="monospace"
               />
-              <Tooltip 
+              <Tooltip
                 contentStyle={{ backgroundColor: '#0b101e', borderColor: '#1e293b', color: '#f1f5f9', borderRadius: '8px' }}
                 itemStyle={{ fontSize: '13px', fontWeight: 'bold', fontFamily: 'monospace' }}
               />
               <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontFamily: 'monospace', fontSize: '12px', color: '#8b9bb4' }} />
-              <Line 
-                type="monotone" 
-                dataKey="T100" 
-                name="Tanque Agua Bruta (T-100)" 
-                stroke="#3b82f6" 
+              <Line
+                type="monotone"
+                dataKey="T100"
+                name="Tanque Cárcamo (T-100)"
+                stroke="#3b82f6"
                 strokeWidth={3}
                 dot={false}
                 isAnimationActive={false}
               />
-              <Line 
-                type="monotone" 
-                dataKey="T200" 
-                name="Tanque Agua Tratada (T-200)" 
-                stroke="#10b981" 
+              <Line
+                type="monotone"
+                dataKey="T200"
+                name="Tanque Reservorio (T-200)"
+                stroke="#10b981"
                 strokeWidth={3}
                 dot={false}
                 isAnimationActive={false}
